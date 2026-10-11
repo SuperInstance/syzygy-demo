@@ -1,0 +1,155 @@
+var defaultTexWidth = 16;
+var defaultTexHeight = 16;
+var defaultTexScale = 2;
+
+// large brick wall texture
+var brick = "";
+brick += "#####.####.####.";
+brick += "#7#o7.#o#o.#o#o.";
+brick += "0oooo.#ooo.#ooo.";
+brick += "................";
+brick += "5##.####.#####.#";
+brick += "#7o.7#7o.7#77o.#";
+brick += "ooo.oooo.ooo#o.#";
+brick += "................";
+brick += "#####.####.####.";
+brick += "#7#o7.#o#o.#o#o.";
+brick += "#oooo.#ooo.#ooo.";
+brick += "................";
+brick += "##.####.#####.##";
+brick += "#o.#7##.#7#7o.#7";
+brick += "oo.#ooo.#oooo.#o";
+brick += "................";
+
+
+// wood planks texture
+var woodplanks = "";
+woodplanks += "ooooo.oooooooooo";
+woodplanks += "ooo#o.o#o7777ooo";
+woodplanks += "7oooo.ooooooo777";
+woodplanks += "ooooo.oooooooooo";
+woodplanks += "ooooo.ooo777oooo";
+woodplanks += "77o#o.o#oooo7777";
+woodplanks += "ooooo.oooooooooo";
+woodplanks += "................";
+woodplanks += "ooooooooooo.oooo";
+woodplanks += "ooo77777o+o.o#oo";
+woodplanks += "777oooooooo.ooo7";
+woodplanks += "ooooooooooo.oooo";
+woodplanks += "ooooo777ooo.oooo";
+woodplanks += "77777oooo#o.o#o7";
+woodplanks += "ooooooooooo.oooo";
+woodplanks += "................";
+woodplanks += "................";
+woodplanks += "................";
+
+
+// cobble stone
+var texWidth = 16;
+var texHeight = 16;
+var cobblestone = "";
+cobblestone += "##.........777.#";
+cobblestone += "777..####7....##";
+cobblestone += "777.##77777..##7";
+cobblestone += "77*.#7777777.*77";
+cobblestone += "7*..7777777*..*7";
+cobblestone += "......77***.....";
+cobblestone += "..##7*.....###..";
+cobblestone += "###777...##777.#";
+cobblestone += "##777*..##777*.7.";
+cobblestone += "7777*..77777*...";
+cobblestone += "77*.....777*....";
+cobblestone += "....##..........";
+cobblestone += "...##77......#77";
+cobblestone += "7.##77777..##777";
+cobblestone += "7.#77777*.#7777*";
+cobblestone += "...777**..7777~~";
+
+
+// Perspective Store Shelve Test Looking South
+var textureS = "";
+textureS += "################";
+textureS += "*************7##";
+textureS += "************77##";
+textureS += "...........777##";
+textureS += "...........777##";
+textureS += "################";
+textureS += "*************7##";
+textureS += "...........777##";
+textureS += "...........777##";
+textureS += "*************7##";
+textureS += "################";
+textureS += "...........777##";
+textureS += "...........777##";
+textureS += "************77##";
+textureS += "*************7##";
+textureS += "################";
+
+
+// Perspective Store Shelve Test Looking North
+var textureN = "";
+textureN += "################";
+textureN += "##7*************";
+textureN += "##77************";
+textureN += "##777...........";
+textureN += "##777...........";
+textureN += "################";
+textureN += "##7*************";
+textureN += "##777...........";
+textureN += "##777...........";
+textureN += "##7*************";
+textureN += "################";
+textureN += "##777...........";
+textureN += "##777...........";
+textureN += "##77************";
+textureN += "##7*************";
+textureN += "################";
+
+
+// Concrete Wall
+var textureC = "";
+textureC += "7#.ooooo";
+textureC += "77777#.o";
+textureC += "77777777";
+textureC += "ooooo.#7";
+textureC += "o.#7oooo";
+textureC += "o#77777.";
+textureC += "77777777";
+textureC += "ooooo.#7";
+
+
+// Array assignes textures to keys that will
+// correspond with their coordinates on the map
+var textures = {
+  "#": {
+    "texture": cobblestone,
+    "scale": 2,
+  },
+  "U": {
+    "texture": woodplanks,
+    "height": 18,
+    "width": 16,
+    "scale": 4,
+  },
+  "C": {
+    "texture": textureC,
+    "height": 8,
+    "width": 8,
+    "scale": 4,
+  },
+  "$": {
+    "texture": brick,
+    "scale": 2,
+  },
+  "T": {
+    "texture": cobblestone,
+    "scale": 2,
+  },
+  "W": {
+    "texture": "DIRECTIONAL",
+    "N": textureN,
+    "S": textureS,
+    "scale": 1
+  },
+};
+

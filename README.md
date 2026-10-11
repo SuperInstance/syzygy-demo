@@ -1,31 +1,3 @@
-# syzygy-demo — watch an AI play a game by reading it
-
-## The short version
-
-This is a small 3D maze game (an ASCII raycaster — the world is drawn
-entirely in text characters) being **played live by an AI that never sees
-the game**. The AI receives only the screen, as a grid of letters. A
-language model reads that grid and reports what it sees ("corridor open
-ahead, something at column 25"). Scripted *strategy tiles* — old-fashioned
-game AI, no learning involved — decide what to do with those reports.
-You watch the screen it reads, the reports, and the decisions, and you can
-**click a different strategy tile mid-game** to change how it plays:
-Explorer sweeps room to room; Hunter centres whatever it spots and closes
-in. The only learned component in the whole system is the seeing.
-
-That separation is the point of the Syzygy program: if seeing is text, and
-deciding is a script you can read, then the whole loop is inspectable —
-every mistake can be traced to a misread or a bad rule, never to a black
-box.
-
-**Run it:** `npm install` once, then `node server.js`, open
-**http://127.0.0.1:8734/**. Honest warning: each read takes the model
-~9–15 seconds, so the play is deliberate, not fast — that latency is
-measured and shown on the page, not hidden. Full detail, invariants, and
-limits below.
-
----
-
 # Syzygy — playable ASCII demo (v1)
 
 An open-source ASCII raycaster, played live by a system with exactly **one**
@@ -44,7 +16,32 @@ strategy tile (scripted JS) ◄────────────────�
 synthetic key events ──► the game
 ```
 
-## Run it
+## Play it live (public deployment)
+
+**https://superinstance.github.io/syzygy-demo/play/** — the whole demo runs
+in the browser: the engine, the tiles, the feed. Perception goes through
+the **syzygy-rack** Cloudflare Worker (`worker/`), a multi-provider
+key-rack holding MiniMax (`/perceive`), Typesafe/Jev (`/judge` — one
+session verdict per visitor session) and Moth Quantum (`/moth`) keys as
+Worker secrets, paced per caller and capped per day.
+
+Modes a visitor can get:
+
+- **Live** — the rack's house MiniMax key perceives each tick. The page
+  probes the rack's `/health` on load and lights this up automatically
+  once the house secrets are seated (see `worker/README.md` for the
+  one manual step — real provider keys, set by the account owner).
+- **BYO key** — paste your own provider key in Settings; it lives only
+  in your browser's localStorage and is passed through the rack per call
+  (never stored or logged server-side). This is fully live today.
+- **Replay** — when the house eyes are unconfigured or resting, the page
+  plays a recorded *real* session (`docs/play/replay-session.json`,
+  recorded from the local server: real MiniMax reads, scripted tiles),
+  clearly badged as a recording.
+
+The Node server below remains the local option and is unchanged.
+
+## Run it locally
 
 ```sh
 cd ~/workspace/syzygy-demo
@@ -114,6 +111,12 @@ grid, closes distance, engages at contact; sweeps/patrols when blind).
 ## Files
 
 ```
+docs/play/              the public browser deployment (GitHub Pages):
+                        index.html, js/ (client ports of the loop, tiles,
+                        perception), engine/ (vendored engine + assets),
+                        replay-session.json (recorded real session)
+worker/                 syzygy-rack: the multi-provider key-rack Worker
+                        (worker.js, deploy.py, wrangler.toml, README.md)
 server.js               tick loop + HTTP API + page host
 lib/gamehost.js         jsdom host for the engine; the two channels; key input
 lib/downsample.js       raw buffer (320×~85) -> agent grid, salience-based,

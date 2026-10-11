@@ -1,0 +1,26 @@
+# syzygy-rack — Cloudflare Worker (multi-provider key-rack for the Syzygy demo)
+# Deploy either with deploy.py (API route, used for the live deployment) or:
+#   wrangler deploy
+# Secrets are NEVER in this file. Set them with:
+#   wrangler secret put MINIMAX_API_KEY
+#   wrangler secret put TYPESAFE_API_KEY
+#   wrangler secret put MOTH_API_KEY
+name = "syzygy-rack"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Daily house-call caps + pacing (plain vars; raise on a paid plan as needed).
+# Note: on the Workers free plan, KV writes (~1k/day) are the binding
+# constraint behind these numbers — see README.md.
+[vars]
+ALLOWED_ORIGINS = "https://superinstance.github.io,http://127.0.0.1:8734,http://localhost:8734"
+PACE_MS = "2500"
+PERCEIVE_DAILY_CAP = "600"
+JUDGE_DAILY_CAP = "250"
+MOTH_DAILY_CAP = "50"
+
+# Counter store (counts only, never payloads). Created by deploy.py as
+# SYZ_RACK_COUNTERS; fill in the id if deploying with wrangler first.
+[[kv_namespaces]]
+binding = "RACK"
+id = "2245935e417741b199e913c85fc69be9"

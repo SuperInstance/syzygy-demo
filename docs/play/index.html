@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syzygy — a vision model plays an ASCII game (live in your browser)</title>
+<!-- Vendored game engine: justMoritz/3d-game-engine (MIT, see engine/LICENSE).
+     Loaded exactly as upstream's harness does; the SYZYGY HOOK inside
+     game-engine.js exposes __syzAgentView() (buffer only) and
+     __syzDisplayState() (page/scorer only). -->
+<script id="gameEngine" type="text/javascript" src="engine/game-engine.js"></script>
+<script id="textures" type="text/javascript" src="engine/assets/textures.tex"></script>
+<script id="textures2" type="text/javascript" src="engine/assets/sprites.tex"></script>
+<script id="map" type="text/javascript" src="engine/assets/levelfile1.map"></script>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0b0e11; color:#d7dee6; font-family: ui-monospace, Consolas, monospace; margin:0; padding:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:#8b98a5; font-size:12px; margin-bottom:12px; max-width:1100px; line-height:1.5; }
+  .modebadge { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.03em; border-radius:6px; padding:4px 10px; margin-bottom:10px; border:1px solid #2a3440; color:#9aa7b4; }
+  .modebadge.live { color:#7ee787; border-color:#2ea043; background:#0d1f14; }
+  .modebadge.replay { color:#e8b13a; border-color:#9e7b1e; background:#221c10; }
+  .layout { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .viewbox { flex: 1 1 640px; min-width:320px; }
+  #view { background:#000; border:1px solid #2a3440; padding:8px; font-size:9.5px; line-height:1.05; white-space:pre; overflow:auto; min-height:300px; }
+  .side { flex: 1 1 380px; min-width:320px; display:flex; flex-direction:column; gap:12px; }
+  .tiles { display:flex; gap:8px; flex-wrap:wrap; }
+  .tile { flex:1 1 160px; text-align:left; background:#131a21; color:#d7dee6; border:1px solid #2a3440; border-radius:8px; padding:10px; cursor:pointer; font:inherit; }
+  .tile .name { font-weight:700; font-size:14px; }
+  .tile .desc { color:#8b98a5; font-size:11px; margin-top:4px; line-height:1.35; }
+  .tile.active { border-color:#e8b13a; background:#221c10; box-shadow:0 0 0 1px #e8b13a inset; }
+  #feed { background:#0e1319; border:1px solid #2a3440; border-radius:8px; padding:10px; height:420px; overflow-y:auto; font-size:12px; line-height:1.5; }
+  #feed .line { margin-bottom:5px; word-wrap:break-word; }
+  #feed .tick { color:#5b6b7a; }
+  .see { color:#58c6dc; } .decide { color:#e8b13a; } .system { color:#9aa7b4; font-style:italic; } .judge { color:#bc8cff; }
+  .godbox, .panel { background:#0e1319; border:1px solid #2a3440; border-radius:8px; padding:10px; }
+  .godbox { border-style:dashed; border-color:#45586c; margin-top:12px; }
+  .godbox .label { color:#ff7b72; font-size:11px; letter-spacing:.04em; margin-bottom:6px; }
+  #god { font-size:12px; line-height:1.1; white-space:pre; margin:0; }
+  .status { font-size:12px; color:#8b98a5; margin-bottom:6px; }
+  .status b { color:#d7dee6; }
+  .panel h3 { margin:0 0 6px; font-size:13px; }
+  .panel p { color:#8b98a5; font-size:12px; line-height:1.5; margin:6px 0; }
+  .panel label { display:block; font-size:11px; color:#8b98a5; margin:10px 0 3px; }
+  .panel input { width:100%; box-sizing:border-box; background:#0b0e11; color:#d7dee6; border:1px solid #2a3440; border-radius:6px; padding:7px; font:inherit; font-size:12px; }
+  .btn { background:#131a21; color:#d7dee6; border:1px solid #2a3440; border-radius:6px; padding:7px 12px; cursor:pointer; font:inherit; font-size:12px; }
+  .btn:hover { border-color:#58c6dc; }
+  .btnrow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  details.panel summary { cursor:pointer; font-size:13px; font-weight:700; }
+  #enginebox { position:relative; height:170px; overflow:hidden; background:#000; border:1px solid #2a3440; border-radius:6px; }
+  #game { position:relative; height:100%; }
+  #display { font-size:7px; line-height:1.0; white-space:pre; color:#9fe870; }
+  #seconddisplay { position:absolute; left:0; top:0; color:#9fe870; font-size:10px; }
+  #touchinputmove, #touchinputlook { position:absolute; top:0; height:100%; width:50%; }
+  #touchinputmove { left:0; } #touchinputlook { right:0; }
+  .engbtns { margin-top:6px; display:flex; gap:6px; }
+  .foot { color:#5b6b7a; font-size:11px; line-height:1.6; margin-top:16px; max-width:1100px; }
+  .foot a, .sub a { color:#58c6dc; }
+</style>
+</head>
+<body>
+<h1>SYZYGY — a vision model plays an ASCII game</h1>
+<div class="sub">The game runs <b>in this page</b>. The agent sees <b>only</b> the character grid below: a real model (MiniMax) reads that grid at each decision tick through the Syzygy key-rack and reports what it perceives — it never picks actions. Actions come from scripted <b>strategy tiles</b>. Click a tile to change how it plays, live; the eyes never change, only the script. Invariants and honest limits: <a href="https://github.com/SuperInstance/syzygy-demo">the repo README</a>.</div>
+
+<div><span class="modebadge" id="modebadge">connecting…</span></div>
+
+<div class="layout">
+  <div class="viewbox">
+    <div class="status" id="status">connecting…</div>
+    <pre id="view">loading the grid…</pre>
+    <div class="godbox">
+      <div class="label">GOD VIEW — ground truth for the audience/scorer ONLY. The agent never sees this.</div>
+      <pre id="god">…</pre>
+    </div>
+    <details class="panel" style="margin-top:12px;">
+      <summary>Raw engine buffer (what the engine draws; the agent reads a downsample of this)</summary>
+      <div id="enginebox">
+        <div id="game">
+          <div id="display"></div>
+          <div id="seconddisplay"></div>
+          <div id="touchinputlook"></div>
+          <div id="touchinputmove"></div>
+        </div>
+      </div>
+      <div id="debug" style="display:none;"></div>
+      <div class="engbtns">
+        <button class="btn" id="solid">Solid</button>
+        <button class="btn" id="texture">Texture</button>
+        <button class="btn" id="shader">Shaded Texture</button>
+      </div>
+      <p>Engine: justMoritz/3d-game-engine (MIT), vendored unmodified except the marked SYZYGY HOOK. The hook's agent channel returns this buffer and nothing else.</p>
+    </details>
+  </div>
+  <div class="side">
+    <div>
+      <div style="font-size:12px;color:#8b98a5;margin-bottom:6px;">STRATEGY TILES — click to switch mid-game</div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="verdictBtn">⚖ Session verdict (Jev)</button>
+      <button class="btn" id="mothBtn">◈ Probe Moth engines</button>
+      <button class="btn" id="goLiveBtn">▶ Play live with my key</button>
+    </div>
+    <div>
+      <div style="font-size:12px;color:#8b98a5;margin-bottom:6px;">DECISION FEED — <span class="see">[see]</span> = the model perceives · <span class="decide">[decide]</span> = the tile acts · <span class="judge">[judge]</span> = Jev garnish</div>
+      <div id="feed"></div>
+    </div>
+    <details class="panel">
+      <summary>Settings — key rack &amp; your own keys</summary>
+      <p>Perception runs through a small Cloudflare Worker (the “key rack”) so no provider key ever ships in this page. The rack paces calls and caps daily house usage; when the house eyes are resting, this page plays a recorded real session instead.</p>
+      <label for="workerUrl">Key-rack Worker URL</label>
+      <input id="workerUrl" type="text" autocomplete="off" spellcheck="false">
+      <p><b>Bring your own key (optional).</b> Paste a provider key and it is stored <b>only in this browser</b> (localStorage). Per call it is passed through the rack as a one-time header — the rack uses it for that single call, never stores or logs it, and house caps don't apply. It is never sent anywhere else.</p>
+      <label for="byo-minimax">MiniMax API key (enables live play)</label>
+      <input id="byo-minimax" type="password" autocomplete="off" spellcheck="false" placeholder="not set">
+      <label for="byo-typesafe">Typesafe (Jev) API key (enables session verdicts)</label>
+      <input id="byo-typesafe" type="password" autocomplete="off" spellcheck="false" placeholder="not set">
+      <label for="byo-moth">Moth Quantum API key (enables Moth probes)</label>
+      <input id="byo-moth" type="password" autocomplete="off" spellcheck="false" placeholder="not set">
+      <div class="btnrow">
+        <button class="btn" id="saveSettings">Save settings</button>
+        <button class="btn" id="clearKeys">Clear my keys</button>
+      </div>
+      <p id="settingsNote"></p>
+    </details>
+  </div>
+</div>
+
+<div class="foot">
+  Honest limits (same as the local version): hosted MiniMax reads take ~9–15 s, so the agent plays at reading speed; the model sometimes misreads floor texture as creatures; this engine has no fire button, so Hunter “engages” by pursuit to contact range. Prefer your own machine? The Node server version in <a href="https://github.com/SuperInstance/syzygy-demo">the repo</a> runs the identical loop locally. Part of the <a href="https://superinstance.github.io/syzygy-studio/">Syzygy program</a>.
+</div>
+
+<script>
+  window.SYZ_WORKER_DEFAULT = 'https://syzygy-rack.casey-digennaro.workers.dev';
+</script>
+<script src="js/downsample.js"></script>
+<script src="js/strategies.js"></script>
+<script src="js/perceive.js"></script>
+<script src="js/main.js"></script>
+<script>
+  // Settings wiring (keys live only in this browser).
+  (function () {
+    var P = window.SyzPerceive;
+    var urlEl = document.getElementById('workerUrl');
+    var note = document.getElementById('settingsNote');
+    function currentUrl() {
+      var u = '';
+      try { u = localStorage.getItem('syz-worker-url') || ''; } catch (e) {}
+      return u || window.SYZ_WORKER_DEFAULT;
+    }
+    urlEl.value = currentUrl();
+    ['minimax', 'typesafe', 'moth'].forEach(function (prov) {
+      var el = document.getElementById('byo-' + prov);
+      if (P.byoKey(prov)) el.placeholder = 'saved in this browser (leave blank to keep)';
+    });
+    document.getElementById('saveSettings').addEventListener('click', function () {
+      try { localStorage.setItem('syz-worker-url', urlEl.value.trim()); } catch (e) {}
+      ['minimax', 'typesafe', 'moth'].forEach(function (prov) {
+        var el = document.getElementById('byo-' + prov);
+        if (el.value.trim()) { P.setByoKey(prov, el.value.trim()); el.value = ''; el.placeholder = 'saved in this browser (leave blank to keep)'; }
+      });
+      note.textContent = 'Saved. Reload the page (or use “Play live with my key”) to apply.';
+    });
+    document.getElementById('clearKeys').addEventListener('click', function () {
+      ['minimax', 'typesafe', 'moth'].forEach(function (prov) {
+        P.setByoKey(prov, '');
+        document.getElementById('byo-' + prov).placeholder = 'not set';
+      });
+      note.textContent = 'Your keys were removed from this browser.';
+    });
+  })();
+</script>
+</body>
+</html>
