@@ -1,0 +1,58 @@
+var map = "";
+map += "##XX##########XX##";
+map += "..................";
+map += "....oooooooooo....";
+map += "..................";
+map += "..................";
+map += "W...W..o.o.......W";
+map += "W...W..o.o...WWW.W";
+map += "W......o.o.......W";
+map += "W...W........WWW.W";
+map += "W...W..o.o.......W";
+map += "W......o.o...WWW.W";
+map += "W...W..o.o.......W";
+map += "W...W........WWW.W";
+map += "W...W..o.o.......W";
+map += "W......o.o...WWW.W";
+map += "W...W..o.o.......W";
+map += "W...W........WWW.W";
+map += "..................";
+map += "##################";
+
+levelfile2 = {
+  nMapHeight: 20,
+  nMapWidth: 18,
+  map: map,
+  fPlayerX: 3,
+  fPlayerY: 2.5,
+  fPlayerA: 1.5,
+  exitsto: "levelfile3.map",
+  color: "pink",
+  background: "blue",
+  sprites: {
+    "1": {
+      "x": "8.0",
+      "y": "3.5",
+      "r": "0.5",
+      "name": "P",
+      "move": true,
+      "stuckcounter": 0
+    },
+    "2": {
+      "x": "3.5",
+      "y": "3.5",
+      "r": "0",
+      "name": "O",
+      "stuckcounter": 0
+    },
+    "3": {
+      "x": "11",
+      "y": "8",
+      "r": "2",
+      "name": "P",
+      "move": true,
+      "stuckcounter": 0
+    },
+  },
+  sprites: "autogen",
+};

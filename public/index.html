@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syzygy — a vision model plays an ASCII game</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0b0e11; color:#d7dee6; font-family: ui-monospace, Consolas, monospace; margin:0; padding:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:#8b98a5; font-size:12px; margin-bottom:12px; }
+  .layout { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
+  .viewbox { flex: 1 1 640px; }
+  #view { background:#000; border:1px solid #2a3440; padding:8px; font-size:9.5px; line-height:1.05; white-space:pre; overflow:auto; min-height:300px; }
+  .side { flex: 1 1 380px; min-width:340px; display:flex; flex-direction:column; gap:12px; }
+  .tiles { display:flex; gap:8px; flex-wrap:wrap; }
+  .tile { flex:1 1 160px; text-align:left; background:#131a21; color:#d7dee6; border:1px solid #2a3440; border-radius:8px; padding:10px; cursor:pointer; font:inherit; }
+  .tile .name { font-weight:700; font-size:14px; }
+  .tile .desc { color:#8b98a5; font-size:11px; margin-top:4px; line-height:1.35; }
+  .tile.active { border-color:#e8b13a; background:#221c10; box-shadow:0 0 0 1px #e8b13a inset; }
+  #feed { background:#0e1319; border:1px solid #2a3440; border-radius:8px; padding:10px; height:420px; overflow-y:auto; font-size:12px; line-height:1.5; }
+  #feed .line { margin-bottom:5px; word-wrap:break-word; }
+  #feed .tick { color:#5b6b7a; }
+  .see { color:#58c6dc; } .decide { color:#e8b13a; } .system { color:#9aa7b4; font-style:italic; }
+  .godbox { background:#0e1319; border:1px dashed #45586c; border-radius:8px; padding:10px; }
+  .godbox .label { color:#ff7b72; font-size:11px; letter-spacing:.04em; margin-bottom:6px; }
+  #god { font-size:12px; line-height:1.1; white-space:pre; }
+  .status { font-size:12px; color:#8b98a5; }
+  .status b { color:#d7dee6; }
+</style>
+</head>
+<body>
+<h1>SYZYGY — a vision model plays an ASCII game</h1>
+<div class="sub">The agent sees <b>only</b> the character grid below. A real model (MiniMax) reads that grid at each decision tick and reports what it perceives — it never picks actions. Actions come from scripted <b>strategy tiles</b>. Click a tile to change how it plays, live; the eyes never change, only the script.</div>
+
+<div class="layout">
+  <div class="viewbox">
+    <div class="status" id="status">connecting…</div>
+    <pre id="view">loading the grid…</pre>
+    <div class="godbox">
+      <div class="label">GOD VIEW — ground truth for the audience/scorer ONLY. The agent never sees this.</div>
+      <pre id="god">…</pre>
+    </div>
+  </div>
+  <div class="side">
+    <div>
+      <div style="font-size:12px;color:#8b98a5;margin-bottom:6px;">STRATEGY TILES — click to switch mid-game</div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;color:#8b98a5;margin-bottom:6px;">DECISION FEED — <span class="see">[see]</span> = the model perceives &nbsp; <span class="decide">[decide]</span> = the tile acts</div>
+      <div id="feed"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const viewEl = document.getElementById('view');
+const feedEl = document.getElementById('feed');
+const tilesEl = document.getElementById('tiles');
+const statusEl = document.getElementById('status');
+const godEl = document.getElementById('god');
+let lastFeedSeq = 0, tilesBuiltFor = '';
+
+function arrowFor(a) {
+  const dx = Math.cos(a), dy = Math.sin(a);
+  const arrows = ['→','↘','↓','↙','←','↖','↑','↗'];
+  let idx = Math.round(Math.atan2(dy, dx) / (Math.PI / 4));
+  return arrows[((idx % 8) + 8) % 8];
+}
+
+function renderGod(god) {
+  if (!god || !god.map) { godEl.textContent = '…'; return; }
+  const W = god.mapWidth, H = god.mapHeight;
+  const cells = [];
+  for (let y = 0; y < H; y++) cells.push(god.map.slice(y * W, (y + 1) * W).split(''));
+  for (const s of god.sprites) {
+    const x = Math.floor(s.x), y = Math.floor(s.y);
+    if (y >= 0 && y < H && x >= 0 && x < W) cells[y][x] = s.name || 'S';
+  }
+  const px = Math.floor(god.player.x), py = Math.floor(god.player.y);
+  if (py >= 0 && py < H && px >= 0 && px < W) cells[py][px] = arrowFor(god.player.angle);
+  godEl.textContent = 'level: ' + god.level + '   player ' + arrowFor(god.player.angle) +
+    ' facing   P/O = creatures\n' + cells.map(r => r.join('')).join('\n');
+}
+
+async function poll() {
+  try {
+    const st = await (await fetch('/api/state')).json();
+    if (st.grid) viewEl.textContent = st.grid;
+    statusEl.innerHTML = 'tick <b>#' + st.tick + '</b> · last model read: <b>' +
+      (st.lastLatencyMs ? (st.lastLatencyMs / 1000).toFixed(1) + 's' : '—') +
+      '</b> · active tile: <b>' + st.activeTile + '</b> · the grid above is exactly what the model reads';
+    const key = st.tiles.map(t => t.id).join(',') + '|' + st.activeTile;
+    if (key !== tilesBuiltFor) {
+      tilesBuiltFor = key;
+      tilesEl.innerHTML = '';
+      for (const t of st.tiles) {
+        const b = document.createElement('button');
+        b.className = 'tile' + (t.id === st.activeTile ? ' active' : '');
+        b.innerHTML = '<div class="name"></div><div class="desc"></div>';
+        b.querySelector('.name').textContent = t.name;
+        b.querySelector('.desc').textContent = t.description;
+        b.onclick = async () => {
+          await fetch('/api/strategy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: t.id }) });
+          tilesBuiltFor = '';
+        };
+        tilesEl.appendChild(b);
+      }
+    }
+    for (const line of st.feed) {
+      if (line.seq <= lastFeedSeq) continue;
+      lastFeedSeq = line.seq;
+      const div = document.createElement('div');
+      div.className = 'line';
+      const tag = line.kind === 'see' ? '[see]' : line.kind === 'decide' ? '[decide]' : '[sys]';
+      div.innerHTML = '<span class="tick">#' + line.tick + '</span> <span class="' + line.kind + '">' + tag + '</span> ';
+      div.appendChild(document.createTextNode(line.text));
+      feedEl.appendChild(div);
+    }
+    while (feedEl.children.length > 300) feedEl.removeChild(feedEl.firstChild);
+    feedEl.scrollTop = feedEl.scrollHeight;
+    renderGod(st.god);
+  } catch (e) {
+    statusEl.textContent = 'server unreachable: ' + e.message;
+  }
+}
+setInterval(poll, 250);
+poll();
+</script>
+</body>
+</html>

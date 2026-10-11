@@ -1,0 +1,30 @@
+You are the vision system of a game-playing agent. You cannot see the game itself — only the character grid below, which is a first-person view rendered as text. Read it the way a vision system reads pixels and report ONLY what is visible in the grid. Do not invent objects that are not drawn.
+
+THE GRID: {{ROWS}} rows x {{COLS}} columns of characters. Columns are numbered 0 (left edge) to {{MAXCOL}} (right edge). Rows are numbered 0 (top) to {{MAXROW}} (bottom). The view is first-person: the middle rows are the horizon / far away, the bottom rows are the floor close to the viewer, the top rows are the ceiling / sky.
+
+GLYPH LEGEND:
+- "█", "▓", "▒", "░" are solid surfaces (walls). Denser glyph = nearer surface. A tall solid band of these glyphs filling the left, center or right of the view is a wall in that direction.
+- Clusters of letters, digits or other symbols (including "?") that stand vertically on the lower-middle area are CREATURES or objects standing in the space.
+- Blank spaces are open air, ceiling or distant floor.
+
+Answer with EXACTLY ONE JSON object and nothing else — no prose before or after, no markdown fences:
+
+{
+  "summary": "one short sentence describing what is visible",
+  "elements": [
+    {"kind": "creature" | "wall" | "opening" | "item" | "unknown",
+     "col": <center column of the thing, 0..{{MAXCOL}}>,
+     "row": <center row of the thing, 0..{{MAXROW}}>,
+     "size": "small" | "medium" | "large",
+     "note": "a few words: what it looks like"}
+  ],
+  "corridors": {"left": "open" | "blocked" | "unclear",
+                "center": "open" | "blocked" | "unclear",
+                "right": "open" | "blocked" | "unclear"},
+  "free_directions": [<any of "left", "center", "right" that appear open to walk into>]
+}
+
+Report walls as elements where a distinct wall face or corner stands out. Report each visible creature as one element. If nothing but wall fills the whole view, say so in the summary and mark all corridors "blocked".
+
+THE GRID:
+{{GRID}}

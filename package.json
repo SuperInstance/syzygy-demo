@@ -1,0 +1,1 @@
+{"dependencies":{"jsdom":"^30.1.2"},"description":"Syzygy playable ASCII demo: a real vision model reads a text grid; scripted strategy tiles play the game.","license":"MIT","main":"server.js","name":"syzygy-demo","private":true,"scripts":{"start":"node server.js"},"version":"0.1.0"}

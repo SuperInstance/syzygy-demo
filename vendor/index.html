@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- Harness page for the vendored engine (adapted from upstream index.html;
+     only script paths changed to match this folder layout).
+     justMoritz/3d-game-engine, MIT — https://github.com/justMoritz/3d-game-engine -->
+<html>
+  <head>
+    <title>3D ASCII Game Engine (vendored harness)</title>
+    <meta charset="utf-8">
+    <script id="gameEngine" type="text/javascript" src="game-engine.js"></script>
+    <script id="textures" type="text/javascript" src="assets/textures.tex"></script>
+    <script id="textures2" type="text/javascript" src="assets/sprites.tex"></script>
+    <script id="map" type="text/javascript" src="assets/levelfile1.map"></script>
+    <style>
+      body{ background: black; color: white; font-family: monospace; }
+      #seconddisplay{ position: absolute; left: 0; top: 0; color: lightgreen; }
+      #touchinputmove, #touchinputlook{ position: absolute; top: 0; height: 100%; width: 50%; }
+      #touchinputmove{ left: 0; } #touchinputlook{ right: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="game">
+      <div id="display"></div>
+      <div id="seconddisplay"></div>
+      <div id="touchinputlook"></div>
+      <div id="touchinputmove"></div>
+    </div>
+    <div id="debug"></div>
+    <button id="solid">Solid</button>
+    <button id="texture">Texture</button>
+    <button id="shader">Shaded Texture</button>
+    <script>
+      gameEngineJS.init();
+    </script>
+  </body>
+</html>
